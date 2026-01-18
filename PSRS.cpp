@@ -1,0 +1,14 @@
+#include "PSRS.h"
+
+void PSRS(array, n, p){
+	int size = floor((n+p-1)/p);
+	int rsize = floor((size+p-1)/p);
+
+	
+}
+
+
+
+int main(){
+		
+}
