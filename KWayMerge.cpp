@@ -14,7 +14,7 @@ void merge(vector<vector<int>>poVector ){ //poVector will be the vector of parti
     }
     while (!merge_pq.empty()){
         pair<int, int> smallest_element = merge_pq.top();
-        cout << "the poped element is " << smallest_element.first  << "and the index popped from is" << smallest_element.second << endl;
+//        cout << "the poped element is " << smallest_element.first  << "and the index popped from is" << smallest_element.second << endl;
         sorted_vec.push_back(smallest_element.first);
         last_updated_sorted_vec = smallest_element.second;
         pointer_tracker[last_updated_sorted_vec]++;
