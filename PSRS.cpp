@@ -8,29 +8,29 @@ vector<int> PSRS(vector<int> &inputVector, int n,
       p * (p - 1)); // initializing a sample vector of p(p-1) elements
   vector<int> pivots(p - 1, 0); // initializing a pivots array of p-1 elements
   int size = floor((n + p - 1) / p);
-  cout << "size: " << size << endl;
+  // cout << "size: " << size << endl;
   int r_size = floor((size + p - 1) / p); // size of the regular sample
   for (int i = 0; i < p; i++) {
-    cout << "iteration: " << i << endl;
+    // cout << "iteration: " << i << endl;
     int start = i * size;
     int end = (i + 1) * size - 1;
     if (end >= n) {
       end = n - 1;
     }
-    cout << "start: " << start << " end: " << end << endl;
+    // cout << "start: " << start << " end: " << end << endl;
 
     quickSort(inputVector, start, end);
-    cout << "partially sorted inp vec\n[";
+    // cout << "partially sorted inp vec\n[";
     for (int q = 0; q < inputVector.size(); q++) {
       if (q == start) {
-        cout << "|";
+        // cout << "|";
       }
-      cout << inputVector[q] << " ";
+      // cout << inputVector[q] << " ";
       if (q == end) {
-        cout << "| ";
+        // cout << "| ";
       }
     }
-    cout << "]\n";
+    // cout << "]\n";
     for (int j = 1; j < p; j++) {
       if (start + (j * r_size) <= end) {
         sample[(i * (p - 1)) + j - 1] = inputVector[start + (j * r_size)];
@@ -38,60 +38,72 @@ vector<int> PSRS(vector<int> &inputVector, int n,
         sample[(i * (p - 1)) + j - 1] = inputVector[end];
       }
     }
-    cout << "the element of the sample is [";
-    for (const int elem : sample)
-      cout << elem << " ";
-    cout << "]\n";
+    // cout << "the element of the sample is [";
+    // for (const int elem : sample)
+    // cout << elem << " ";
+    // cout << "]\n";
   }
 
   quickSort(sample, 0, p * (p - 1) - 1);
-  cout << "the element of the sorted sample is [";
-  for (const int elem : sample)
-    cout << elem << " ";
-  cout << "]\n";
+  // cout << "the element of the sorted sample is [";
+  // for (const int elem : sample)
+  // cout << elem << " ";
+  // cout << "]\n";
 
   for (int i = 0; i < p - 1; i++) {
     pivots[i] = sample[(i * p - 1) + ((p - 1) / 2)];
   }
-  cout << "the element of the pivots is [";
-  for (const int elem : pivots)
-    cout << elem << " ";
-  cout << "]\n";
+  // cout << "the element of the pivots is [";
+  // for (const int elem : pivots)
+  // cout << elem << " ";
+  // cout << "]\n";
 
-  vector<int> subsize(p * (p - 1), 0);
-  for (int i = 0; i < p - 1; i++) {
+  vector<int> subsize(p * p, 0);
+  for (int i = 0; i < p; i++) {
     int start = i * size;
     int end = (i + 1) * size - 1;
-    if (end >= n) {
+    if (i == p - 1) {
       end = n - 1;
     }
-    subsize[i * (p + 1)] = start;
-    subsize[i * (p + 1) + p] = end + 1;
-    Sublists(inputVector, start, end, subsize, i * (p + 1), pivots, 1, p - 1);
+    subsize[(i * (p))] = start;
+    subsize[(i * (p)) + p - 1] = end + 1;
+    // cout << "starting the sublists function with start: " << start
+    //    << " and end: " << end << endl;
+    Sublists(inputVector, start, end, subsize, i * (p), pivots, 0, p - 2);
   }
-  for (const int elem : subsize)
-    cout << "the element of the subsize is " << elem << endl;
 
+  // adjusting subsizes array
+  // for (int i = 0; i < subsize.size(); i++) {
+  //  subsize[i] -= 1;
+  //}
+
+  subsize.insert(subsize.begin(), 0);
+  // for (const int elem : subsize)
+  // cout << elem << " ";
+
+  // cout << endl;
   vector<vector<vector<int>>> buckets(
       p); // initializing a vector of buckets that contain vectors
           // of vectors of integers
   for (int processor = 0; processor < p; processor++) {
+    // cout << "processor " << processor << ":" << endl;
     for (int bucket = 0; bucket < p; bucket++) {
-      int start = subsize[processor * (p + 1) + bucket];
-      int end = subsize[processor * (p - 1) + bucket + 1];
+      int start = subsize[processor * p + bucket];
+      int end = subsize[processor * p + bucket + 1];
       if (start < end) {
         buckets[bucket].push_back(vector<int>(inputVector.begin() + start,
                                               inputVector.begin() + end));
-        for (const vector<int> elem : buckets[bucket]) {
-          cout << "{";
-          for (const int i : elem) {
-            cout << i << " ";
-          }
-          cout << "}";
-        }
+        // cout << "bucket " << bucket << endl;
+        // for (const vector<int> elem : buckets[bucket]) {
+        // cout << "{";
+        // for (const int i : elem) {
+        // cout << i << " ";
+        //}
+        // cout << "}\n";
       }
     }
   }
+  //}
   vector<int> sorted_array;
   for (const vector<vector<int>> bucket : buckets) {
     vector<int> iter_vec = merge(bucket);
@@ -100,17 +112,21 @@ vector<int> PSRS(vector<int> &inputVector, int n,
   return sorted_array;
 }
 
-void Sublists(vector<int> vec, int start, int end, vector<int> subsize, int at,
-              vector<int> pivots, int fp, int lp) {
+void Sublists(vector<int> &vec, int start, int end, vector<int> &subsize,
+              int at, vector<int> &pivots, int fp,
+              int lp) { // here fp is the index of the first pivot and lp is the
+                        // index of the last pivot
   int mid = floor((fp + lp) / 2);
   int pv = pivots[mid];
   int lb = start;
   int ub = end;
-
+  // cout << "start: " << lb << " end: " << ub << " center pivot: " << pv <<
+  // endl;
   while (lb <= ub) {
     int center = floor((lb + ub) / 2);
     if (vec[center] > pv) {
       ub = center - 1;
+    } else {
       lb = center + 1;
     }
   }
