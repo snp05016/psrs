@@ -50,7 +50,7 @@ vector<int> PSRS(vector<int> &inputVector, int n,
     cout << elem << " ";
   cout << "]\n";
 
-  for (int i = 0; i < p - 2; i++) {
+  for (int i = 0; i < p - 1; i++) {
     pivots[i] = sample[(i * p - 1) + ((p - 1) / 2)];
   }
   cout << "the element of the pivots is [";
