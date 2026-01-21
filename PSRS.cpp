@@ -138,11 +138,34 @@ void Sublists(vector<int> &vec, int start, int end, vector<int> &subsize,
     Sublists(vec, lb, end, subsize, at, pivots, mid + 1, lp);
   }
 }
+int ReadFile(string fileName, vector<int> &toPutInto) {
+  ifstream inputFile(fileName);
+  if (!inputFile.is_open()) {
+    cerr << " error " << endl;
+    return 1;
+  }
+  int number;
+  cout << "helo" << endl;
+  while (inputFile >> number) {
+    toPutInto.push_back(number);
+  }
+  inputFile.close();
+  return 0;
+}
+int main(int argc, char *argv[]) {
+  string inputFileName = (argv[1]); // getting the input file name
+  ifstream inputFile(inputFileName);
+  if (!argv[1]) {
+    cerr << "enter the first command line argv please --> number of processors";
+  }
 
-int main() {
-  vector<int> keys = {16, 2,  17, 24, 33, 28, 30, 1,  0,  27, 9,  25,
-                      34, 23, 19, 18, 11, 7,  21, 13, 8,  35, 12, 29,
-                      6,  3,  4,  14, 22, 15, 32, 10, 26, 31, 20, 5};
+  int num_processors = stoi(argv[2]);
+  cout << num_processors << endl;
+  vector<int> keys;
+  ReadFile("keys.txt", keys);
+  // vector<int> keys = {16, 2,  17, 24, 33, 28, 30, 1,  0,  27, 9,  25,
+  //                     34, 23, 19, 18, 11, 7,  21, 13, 8,  35, 12, 29,
+  //                     6,  3,  4,  14, 22, 15, 32, 10, 26, 31, 20, 5};
   vector<int> c = PSRS(keys, keys.size(), 3);
   cout << "the elements of the sorted key are " << endl;
   for (const int elem : c)
