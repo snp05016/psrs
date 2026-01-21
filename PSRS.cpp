@@ -153,12 +153,15 @@ int ReadFile(string fileName, vector<int> &toPutInto) {
   return 0;
 }
 int main(int argc, char *argv[]) {
-  string inputFileName = (argv[1]); // getting the input file name
+  string inputFileName = (argv[1]);  // getting the input file name
+  string outputFileName = (argv[3]); // getting the output file name
+  int num_processors = stoi(argv[2]);
+  ofstream outputFile(outputFileName);
+
   if (!argv[1]) {
     cerr << "enter the first command line argv please --> number of processors";
   }
   struct timeval starttime, endtime;
-  int num_processors = stoi(argv[2]);
   cout << num_processors << endl;
   vector<int> keys;
   ReadFile(inputFileName, keys);
@@ -174,9 +177,16 @@ int main(int argc, char *argv[]) {
   long seconds = endtime.tv_sec - starttime.tv_sec;
   long ms = endtime.tv_sec - starttime.tv_usec;
   double elpsed = seconds + ms * 1e-6;
-  cout << elpsed << endl;
-  cout << "the elements of the sorted key are\n { " << endl;
-  for (const int elem : c)
-    cout << elem << " ";
-  cout << " }";
+  if (!outputFile.is_open()) {
+    cerr << "error opening output file" << endl;
+    return 1;
+  }
+  outputFile << "------------ Input File Name: " << inputFileName
+             << " ------------" << endl;
+  outputFile << "time taken: " << elpsed << endl;
+
+  // cout << "the elements of the sorted key are\n { " << endl;
+  // for (const int elem : c)
+  //   cout << elem << " ";
+  // cout << " }";
 }
