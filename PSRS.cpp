@@ -154,20 +154,29 @@ int ReadFile(string fileName, vector<int> &toPutInto) {
 }
 int main(int argc, char *argv[]) {
   string inputFileName = (argv[1]); // getting the input file name
-  ifstream inputFile(inputFileName);
   if (!argv[1]) {
     cerr << "enter the first command line argv please --> number of processors";
   }
-
+  struct timeval starttime, endtime;
   int num_processors = stoi(argv[2]);
   cout << num_processors << endl;
   vector<int> keys;
-  ReadFile("keys.txt", keys);
+  ReadFile(inputFileName, keys);
   // vector<int> keys = {16, 2,  17, 24, 33, 28, 30, 1,  0,  27, 9,  25,
   //                     34, 23, 19, 18, 11, 7,  21, 13, 8,  35, 12, 29,
   //                     6,  3,  4,  14, 22, 15, 32, 10, 26, 31, 20, 5};
+  gettimeofday(&starttime, NULL);
+
   vector<int> c = PSRS(keys, keys.size(), 3);
-  cout << "the elements of the sorted key are " << endl;
+
+  gettimeofday(&endtime, NULL);
+
+  long seconds = endtime.tv_sec - starttime.tv_sec;
+  long ms = endtime.tv_sec - starttime.tv_usec;
+  double elpsed = seconds + ms * 1e-6;
+  cout << elpsed << endl;
+  cout << "the elements of the sorted key are\n { " << endl;
   for (const int elem : c)
-    cout << elem << endl;
+    cout << elem << " ";
+  cout << " }";
 }

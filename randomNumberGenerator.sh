@@ -1,8 +1,9 @@
 #!/bin/bash
-OUTPUT_FILE="random_numbers_shuf.txt"
-MIN=1
-MAX=2000
-COUNT=25000
-shuf -i $MIN-$MAX -n $COUNT > "$OUTPUT_FILE"
-echo "Generated $COUNT random numbers (range $MIN-$MAX) in $OUTPUT_FILE"
+MAX_COUNT=2500000
+OUTPUT_FILE="output.txt"
+> "$OUTPUT_FILE"
+for (( i=1; i<=$MAX_COUNT; i++ ))
+do
+    echo $RANDOM >> "$OUTPUT_FILE"
+done
 
