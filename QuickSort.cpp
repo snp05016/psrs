@@ -1,7 +1,7 @@
 #include "PSRS.h"
+#include "QuickSort.h"
 
 int Partition(vector<int> &vec, int low, int high) { // hoare's partion
-  int size_vec = vec.size();
   int pivot = vec[low];
   int i = low - 1;
   int j = high + 1;

@@ -12,7 +12,7 @@ merge(vector<vector<int>> poVector) { // poVector will be the vector of
                       std::greater<std::pair<int, int>>>
       merge_pq; // initialize a minheap using a pq
   vector<int> sorted_vec;
-  for (const vector<int> sortedVec : poVector) {
+  for (const vector<int>& sortedVec : poVector) {
     if (!sortedVec.empty()) {
       merge_pq.push({(*sortedVec.begin()), index});
     }
@@ -26,8 +26,8 @@ merge(vector<vector<int>> poVector) { // poVector will be the vector of
     last_updated_sorted_vec = smallest_element.second;
     pointer_tracker[last_updated_sorted_vec]++;
     merge_pq.pop();
-    if (pointer_tracker[last_updated_sorted_vec] !=
-        (poVector[last_updated_sorted_vec].size())) {
+    if ((unsigned long)(pointer_tracker[last_updated_sorted_vec]) !=
+        ((unsigned long)poVector[last_updated_sorted_vec].size())) {
       merge_pq.push({(poVector[last_updated_sorted_vec]
                               [pointer_tracker[last_updated_sorted_vec]]),
                      last_updated_sorted_vec});

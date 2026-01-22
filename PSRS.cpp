@@ -1,6 +1,6 @@
 #include "PSRS.h"
-#include "KWayMerge.cpp"
-#include "QuickSort.cpp"
+#include "KWayMerge.h"
+#include "QuickSort.h"
 vector<int> PSRS(vector<int> &inputVector, int n,
                  int p) { // here the number of processors
                           // will be the number of threads
@@ -21,7 +21,7 @@ vector<int> PSRS(vector<int> &inputVector, int n,
 
     quickSort(inputVector, start, end);
     // cout << "partially sorted inp vec\n[";
-    for (int q = 0; q < inputVector.size(); q++) {
+    for (size_t q = 0; q < inputVector.size(); q++) {
       if (q == start) {
         // cout << "|";
       }
@@ -105,7 +105,7 @@ vector<int> PSRS(vector<int> &inputVector, int n,
   }
   //}
   vector<int> sorted_array;
-  for (const vector<vector<int>> bucket : buckets) {
+  for (const vector<vector<int>>& bucket : buckets) {
     vector<int> iter_vec = merge(bucket);
     sorted_array.insert(sorted_array.end(), iter_vec.begin(), iter_vec.end());
   }
@@ -145,14 +145,14 @@ int ReadFile(string fileName, vector<int> &toPutInto) {
     return 1;
   }
   int number;
-  cout << "helo" << endl;
+  // cout << "helo" << endl;
   while (inputFile >> number) {
     toPutInto.push_back(number);
   }
   inputFile.close();
   return 0;
 }
-int main(int argc, char *argv[]) {
+int main(int /*argc*/, char *argv[]) {
   string inputFileName = (argv[1]);  // getting the input file name
   string outputFileName = (argv[3]); // getting the output file name
   int num_processors = stoi(argv[2]);
@@ -162,20 +162,21 @@ int main(int argc, char *argv[]) {
     cerr << "enter the first command line argv please --> number of processors";
   }
   struct timeval starttime, endtime;
-  cout << num_processors << endl;
+  // cout << num_processors << endl;
   vector<int> keys;
   ReadFile(inputFileName, keys);
+  int size_of_input_vector = keys.size();
   // vector<int> keys = {16, 2,  17, 24, 33, 28, 30, 1,  0,  27, 9,  25,
   //                     34, 23, 19, 18, 11, 7,  21, 13, 8,  35, 12, 29,
   //                     6,  3,  4,  14, 22, 15, 32, 10, 26, 31, 20, 5};
   gettimeofday(&starttime, NULL);
 
-  vector<int> c = PSRS(keys, keys.size(), 3);
+  vector<int> c = PSRS(keys, keys.size(), num_processors);
 
   gettimeofday(&endtime, NULL);
 
   long seconds = endtime.tv_sec - starttime.tv_sec;
-  long ms = endtime.tv_sec - starttime.tv_usec;
+  long ms = endtime.tv_usec - starttime.tv_usec;
   double elpsed = seconds + ms * 1e-6;
   if (!outputFile.is_open()) {
     cerr << "error opening output file" << endl;
@@ -183,6 +184,8 @@ int main(int argc, char *argv[]) {
   }
   outputFile << "------------ Input File Name: " << inputFileName
              << " ------------" << endl;
+
+  outputFile << "size of the input: " << size_of_input_vector << endl;
   outputFile << "time taken: " << elpsed << endl;
 
   // cout << "the elements of the sorted key are\n { " << endl;
