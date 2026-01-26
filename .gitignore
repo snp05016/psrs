@@ -2,3 +2,8 @@ a.out
 largeKeys.txt
 output.txt
 .vscode/
+test_data/
+genData.sh
+genDataSeq.sh
+generateTestData.sh
+joinfiles.sh

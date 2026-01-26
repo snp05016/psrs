@@ -36,20 +36,3 @@ merge(vector<vector<int>> poVector) { // poVector will be the vector of
   return sorted_vec;
 }
 
-// void printVector(vector<vector<int>>& inputVector){
-//     for (const vector<int> elem: inputVector){
-//          cout << "{";
-//          for ( const int element : elem){
-//              if (element == elem.back()){
-//              // do nothing
-//                 cout << element;
-//              } else {
-//                 cout << element << ", " ;}
-//          }
-//          cout << "}";
-//     }
-// }
-// int main(){
-//     vector<vector<int>> hello = {{1,9,15},{2,4,6},{8,10,11}};
-//     merge(hello);
-// }
