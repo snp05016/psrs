@@ -30,7 +30,7 @@ merge(vector<vector<int>> poVector) { // poVector will be the vector of
         ((unsigned long)poVector[last_updated_sorted_vec].size())) {
       merge_pq.push({(poVector[last_updated_sorted_vec]
                               [pointer_tracker[last_updated_sorted_vec]]),
-                     last_updated_sorted_vec});
+                    last_updated_sorted_vec});
     }
   }
   return sorted_vec;
