@@ -7,3 +7,4 @@ genData.sh
 genDataSeq.sh
 generateTestData.sh
 joinfiles.sh
+consolidate_results.sh

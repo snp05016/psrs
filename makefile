@@ -2,24 +2,33 @@ CXX = g++
 CXXFLAGS = -std=c++17 -O3 -Wall -Wextra
 THREADFLAGS = -pthread
 
+SRCDIR = src
+OBJDIR = build
+
 TARGET1 = psrs
 TARGET2 = psrsparallel
 
-SRC_SEQ = PSRS.cpp \
-          KWayMerge.cpp \
-          QuickSort.cpp
+SRC_SEQ = $(SRCDIR)/PSRS.cpp \
+          $(SRCDIR)/KWayMerge.cpp \
+          $(SRCDIR)/QuickSort.cpp
 
-SRC_PAR = PSRSParallel.cpp \
-          KWayMerge.cpp \
-          QuickSort.cpp
+SRC_PAR = $(SRCDIR)/PSRSParallel.cpp \
+          $(SRCDIR)/KWayMerge.cpp \
+          $(SRCDIR)/QuickSort.cpp
 
-HDR = PSRS.h \
-      KWayMerge.h
+HDR = $(SRCDIR)/PSRS.h \
+      $(SRCDIR)/KWayMerge.h \
+      $(SRCDIR)/QuickSort.h \
+      $(SRCDIR)/DataGenerator.h \
+      $(SRCDIR)/pthread_barrier.h
 
-OBJ_SEQ = PSRS.o KWayMerge.o QuickSort.o
-OBJ_PAR = PSRSParallel.o KWayMerge.o QuickSort.o
+OBJ_SEQ = $(OBJDIR)/PSRS.o $(OBJDIR)/KWayMerge.o $(OBJDIR)/QuickSort.o
+OBJ_PAR = $(OBJDIR)/PSRSParallel.o $(OBJDIR)/KWayMerge.o $(OBJDIR)/QuickSort.o
 
-all: $(TARGET1) $(TARGET2)
+all: $(OBJDIR) $(TARGET1) $(TARGET2)
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
 $(TARGET1): $(OBJ_SEQ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
@@ -27,11 +36,11 @@ $(TARGET1): $(OBJ_SEQ)
 $(TARGET2): $(OBJ_PAR)
 	$(CXX) $(CXXFLAGS) $(THREADFLAGS) -o $@ $^
 
-%.o: %.cpp $(HDR)
-	$(CXX) $(CXXFLAGS) -c $<
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HDR)
+	$(CXX) $(CXXFLAGS) -I$(SRCDIR) -c $< -o $@
 
 clean:
-	rm -f $(OBJ_SEQ) $(OBJ_PAR) $(TARGET1) $(TARGET2)
+	rm -f $(OBJDIR)/*.o $(TARGET1) $(TARGET2)
 
 run: $(TARGET1)
 	./$(TARGET1)
