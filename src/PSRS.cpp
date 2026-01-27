@@ -3,7 +3,7 @@
 #include "QuickSort.h"
 #include "DataGenerator.h"
 
-
+string OPT_FLAG  = "O3";
 vector<double> phasetimes(6, 0.0);
 pthread_mutex_t buckets_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -250,7 +250,7 @@ int main(int /*argc*/, char *argv[]) {
   struct timeval starttime, endtime;
   // cout << num_processors << endl;
   vector<int> keys = GenerateData(n, 1000000);
-  int size_of_input_vector = keys.size();
+  // int size_of_input_vector = keys.size();
   vector<int> copy_key = keys;
   // vector<int> keys = {16, 2,  17, 24, 33, 28, 30, 1,  0,  27, 9,  25,
   //                     34, 23, 19, 18, 11, 7,  21, 13, 8,  35, 12, 29,
@@ -266,8 +266,8 @@ int main(int /*argc*/, char *argv[]) {
     cerr << "error opening output file" << endl;
     return 1;
   }
-  string opt_flag = "O3";
-  outputFile << opt_flag << ", " << n << ", "  << num_processors << ", " << elpsed << ", ";
+  
+  outputFile << OPT_FLAG << ", " << n << ", "  << num_processors << ", " << elpsed << ", ";
   for (double phase_time : phasetimes) {
     outputFile << phase_time << ", ";
   }

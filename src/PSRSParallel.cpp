@@ -3,7 +3,7 @@
 #include "QuickSort.h"
 #include "DataGenerator.h"
 #include "pthread_barrier.h"
-
+string OPT_FLAG = "O3"; // putting on top so i dont have to scroll all the way to the bottom
 pthread_mutex_t buckets_mutex = PTHREAD_MUTEX_INITIALIZER;
 vector<double> phasetimes(6, 0.0);
 pthread_barrier_t barrier;
@@ -36,6 +36,13 @@ void* phase4_pthread(void* arg) {
   phase4Args* args = (phase4Args*)arg;
   phase4(*args->buckets, *args->subsize, *args->inputVector, args->p,
          args->processor_i);
+  return nullptr;
+}
+
+void* phase5_merge_pthread(void* arg) {
+  phase5MergeArgs* args = (phase5MergeArgs*)arg;
+  // Merge the assigned bucket (which belongs to processor_i)
+  (*args->sorted_parts)[args->processor_i] = merge((*args->buckets)[args->processor_i]);
   return nullptr;
 }
 
@@ -135,7 +142,8 @@ vector<int> PSRS(vector<int> &inputVector, int n, int p) {
   
   // phase 4: Exchange and merge
   gettimeofday(&start, NULL);
-  vector<vector<vector<int>>> buckets(p);
+  // Pre-allocate buckets to avoid locking (p x p structure)
+  vector<vector<vector<int>>> buckets(p, vector<vector<int>>(p));
   phase4Args* phase4_args = new phase4Args[p];
   
   for (int processor = 0; processor < p; processor++) {
@@ -154,16 +162,39 @@ vector<int> PSRS(vector<int> &inputVector, int n, int p) {
   phasetimes[4] = elpsed;
 
   delete[] phase4_args;
-  delete[] threads;
+  
 
   // phase 4(b)  --> merging the bucks 
 
   gettimeofday(&start, NULL);
-  vector<int> sorted_array;
-  for (const vector<vector<int>> &bucket : buckets) {
-    vector<int> iter_vec = merge(bucket);
-    sorted_array.insert(sorted_array.end(), iter_vec.begin(), iter_vec.end());
+  
+  // Parallelize the merge phase: Each processor merges its own bucket
+  vector<vector<int>> sorted_parts(p);
+  phase5MergeArgs* phase5_args = new phase5MergeArgs[p];
+  
+  for (int processor = 0; processor < p; processor++) {
+    phase5_args[processor] = {&buckets, &sorted_parts, processor};
+    pthread_create(&threads[processor], NULL, phase5_merge_pthread, &phase5_args[processor]);
   }
+  
+  for (int i = 0; i < p; i++) {
+    pthread_join(threads[i], NULL);
+  }
+  
+  // Final concatenation (sequential but fast)
+  vector<int> sorted_array;
+  
+  // Pre-calculate total size to reserve memory
+  int total_size = 0;
+  for (const auto& part : sorted_parts) {
+      total_size += part.size();
+  }
+  sorted_array.reserve(total_size);
+  
+  for (const auto& part : sorted_parts) {
+      sorted_array.insert(sorted_array.end(), part.begin(), part.end());
+  }
+
   gettimeofday(&end, NULL);
   // calcualte phase 4(b) time
   seconds = end.tv_sec - start.tv_sec;
@@ -171,6 +202,9 @@ vector<int> PSRS(vector<int> &inputVector, int n, int p) {
   elpsed = seconds + ms * 1e-6;
   phasetimes[5] = elpsed;
   
+  delete[] phase5_args;
+  delete[] threads;
+
   // Destroy barrier
   pthread_barrier_destroy(&barrier);
   
@@ -214,10 +248,9 @@ void phase4(vector<vector<vector<int>>> &buckets, vector<int> &subsize,
     int start = subsize[processor_i * p + bucket];
     int end = subsize[processor_i * p + bucket + 1];
     if (start < end) {
-      pthread_mutex_lock(&buckets_mutex);
-      buckets[bucket].push_back(vector<int>(inputVector.begin() + start,
-                                            inputVector.begin() + end));
-      pthread_mutex_unlock(&buckets_mutex);
+      // Direct access without lock - safe because each processor_i writes to a unique slot
+      buckets[bucket][processor_i] = vector<int>(inputVector.begin() + start,
+                                                 inputVector.begin() + end);
     }
   }
 }
@@ -261,7 +294,7 @@ int main(int /*argc*/, char *argv[]) {
   struct timeval starttime, endtime;
   // cout << num_processors << endl;
   vector<int> keys = GenerateData(n, 1000000);
-  int size_of_input_vector = keys.size();
+  // int size_of_input_vector = keys.size();
   vector<int> copy_key = keys;
   // vector<int> keys = {16, 2,  17, 24, 33, 28, 30, 1,  0,  27, 9,  25,
   //                     34, 23, 19, 18, 11, 7,  21, 13, 8,  35, 12, 29,
@@ -277,8 +310,8 @@ int main(int /*argc*/, char *argv[]) {
     cerr << "error opening output file" << endl;
     return 1;
   }
-  string opt_flag = "O3";
-  outputFile << opt_flag << ", " << n << ", "  << num_processors << ", " << elpsed << ", ";
+
+  outputFile << OPT_FLAG << ", " << n << ", "  << num_processors << ", " << elpsed << ", ";
   for (double phase_time : phasetimes) {
     outputFile << phase_time << ", ";
   }

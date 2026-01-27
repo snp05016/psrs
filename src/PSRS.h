@@ -15,6 +15,7 @@ using namespace std;
 extern pthread_mutex_t buckets_mutex;
 extern vector<double> phasetimes;
 extern pthread_barrier_t barrier;
+extern string OPT_FLAG;
 vector<int> PSRS(vector<int> &inputVector, int n, int p);
 void Sublists(vector<int> &vec, int start, int end, vector<int> &subsize,
               int at, const vector<int> &pivots, int fp, int lp);
@@ -60,6 +61,12 @@ struct phase4Args {
   vector<int> *subsize;
   vector<int> *inputVector;
   int p;
+  int processor_i;
+};
+
+struct phase5MergeArgs {
+  vector<vector<vector<int>>> *buckets;
+  vector<vector<int>> *sorted_parts;
   int processor_i;
 };
 

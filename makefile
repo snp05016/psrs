@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -O3 -Wall -Wextra
+OPTIMIZATION = -O3
+CXXFLAGS = -std=c++17 $(OPTIMIZATION) -Wall -Wextra
 THREADFLAGS = -pthread
 
 SRCDIR = src
