@@ -28,14 +28,14 @@ void* phase2_pivot_pthread(void* arg) {
 void* phase3_pthread(void* arg) {
   phase3Args* args = (phase3Args*)arg;
   phase3(*args->subsize, *args->pivots, *args->inputVector, args->size,
-         args->p, args->n, args->processor_i);
+        args->p, args->n, args->processor_i);
   return nullptr;
 }
 
 void* phase4_pthread(void* arg) {
   phase4Args* args = (phase4Args*)arg;
   phase4(*args->buckets, *args->subsize, *args->inputVector, args->p,
-         args->processor_i);
+        args->processor_i);
   return nullptr;
 }
 
@@ -168,7 +168,7 @@ vector<int> PSRS(vector<int> &inputVector, int n, int p) {
 
   gettimeofday(&start, NULL);
   
-  // Parallelize the merge phase: Each processor merges its own bucket
+  // parallelize the merge phase
   vector<vector<int>> sorted_parts(p);
   phase5MergeArgs* phase5_args = new phase5MergeArgs[p];
   
@@ -181,16 +181,12 @@ vector<int> PSRS(vector<int> &inputVector, int n, int p) {
     pthread_join(threads[i], NULL);
   }
   
-  // Final concatenation (sequential but fast)
-  vector<int> sorted_array;
-  
   // Pre-calculate total size to reserve memory
   int total_size = 0;
   for (const auto& part : sorted_parts) {
       total_size += part.size();
   }
-  sorted_array.reserve(total_size);
-  
+  vector<int> sorted_array(total_size, 0);
   for (const auto& part : sorted_parts) {
       sorted_array.insert(sorted_array.end(), part.begin(), part.end());
   }
@@ -231,7 +227,6 @@ void phase1(vector<int> &inputVector, int r_size, int size, int processor_i,
 }
 void phase3(vector<int> &subsize, const vector<int> &pivots,
             vector<int> &inputVector, int size, int p, int n, int processor_i) {
- 
     int start = processor_i * size;
     int end = (processor_i + 1) * size - 1;
     if (processor_i == p - 1) {
@@ -243,14 +238,14 @@ void phase3(vector<int> &subsize, const vector<int> &pivots,
 }
 
 void phase4(vector<vector<vector<int>>> &buckets, vector<int> &subsize,
-                   vector<int> &inputVector, int p, int processor_i) {
+                  vector<int> &inputVector, int p, int processor_i) {
   for (int bucket = 0; bucket < p; bucket++) {
     int start = subsize[processor_i * p + bucket];
     int end = subsize[processor_i * p + bucket + 1];
     if (start < end) {
       // Direct access without lock - safe because each processor_i writes to a unique slot
       buckets[bucket][processor_i] = vector<int>(inputVector.begin() + start,
-                                                 inputVector.begin() + end);
+                                                inputVector.begin() + end);
     }
   }
 }
