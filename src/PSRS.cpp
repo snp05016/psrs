@@ -2,10 +2,20 @@
 #include "KWayMerge.h"
 #include "QuickSort.h"
 #include "DataGenerator.h"
+#include <cstdlib>
 
 string OPT_FLAG  = "O3";
 vector<double> phasetimes(6, 0.0);
 pthread_mutex_t buckets_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// icompt function fort qsort 
+int compare_ints(const void* a, const void* b) {
+  int arg1 = *(const int*)a;
+  int arg2 = *(const int*)b;
+  if (arg1 < arg2) return -1;
+  if (arg1 > arg2) return 1;
+  return 0;
+}
 
 void phase1(vector<int> &inputVector, int r_size, int size, int processor_i,
             int n, int p, vector<int> &sample) {
@@ -16,7 +26,7 @@ void phase1(vector<int> &inputVector, int r_size, int size, int processor_i,
   }
   // cout << "start: " << start << " end: " << end << endl;
 
-  quickSort(inputVector, start, end);
+  qsort(&inputVector[start], end - start + 1, sizeof(int), compare_ints);
   // cout << "partially sorted inp vec\n[";
   for (size_t q = 0; q < inputVector.size(); q++) {
     if (q == start) {

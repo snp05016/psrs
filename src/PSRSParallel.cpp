@@ -3,10 +3,21 @@
 #include "QuickSort.h"
 #include "DataGenerator.h"
 #include "pthread_barrier.h"
+#include <cstdlib>
+
 string OPT_FLAG = "O3"; // putting on top so i dont have to scroll all the way to the bottom
 pthread_mutex_t buckets_mutex = PTHREAD_MUTEX_INITIALIZER;
 vector<double> phasetimes(6, 0.0);
 pthread_barrier_t barrier;
+
+// icompt function fort qsort
+int compare_ints(const void* a, const void* b) {
+  int arg1 = *(const int*)a;
+  int arg2 = *(const int*)b;
+  if (arg1 < arg2) return -1;
+  if (arg1 > arg2) return 1;
+  return 0;
+}
 
 //  worker thread function - executes all phases
 void* worker_thread(void* arg) {

@@ -164,5 +164,22 @@ S(p) = \frac{1}{(1 - f) + \frac{f}{p}}
 Using our experimental data for $N=32M$, the sequential time is $2.79s$ and the time at $p=32$ is $0.59s$. Solving for $f$ suggests an effective parallel fraction of approximately 90\%. 
 
 If the code were perfectly parallelizable ($f=1.0$), we would expect a speedup of $32\times$. The fact that we only achieve $4.67\times$ indicates that the "serial" portion, comprising barrier synchronization, pivot selection, and memory bus contention, is significant. Specifically, as $p$ increases, the memory bandwidth per core decreases. This means that $f$ is not actually a constant; the "cost" of memory operations increases with $p$, making the effective serial portion larger at high thread counts. This explains why the speedup curve not only flattens but eventually dips, as shown in Figure~\ref{fig:efficiency}.
+\begin{thebibliography}{9}
 
+\bibitem{psrs92}
+H. Shi and J. Schaeffer, 
+``Parallel Sorting by Regular Sampling,'' 
+\textit{Journal of Parallel and Distributed Computing}, vol. 14, no. 4, pp. 361--372, 1992.
+
+\bibitem{pthreads}
+B. Nichols, D. Buttlar, and J. P. Farrell, 
+\textit{Pthreads Programming: A POSIX Standard for Better Multiprocessing}, 
+O'Reilly Media, 1996.
+
+\bibitem{amdahl67}
+G. M. Amdahl, 
+``Validity of the single processor approach to achieving large scale computing capabilities,'' 
+in \textit{Proceedings of the April 18-20, 1967, Spring Joint Computer Conference}, pp. 483--485, 1967.
+
+\end{thebibliography}
 \end{document}
