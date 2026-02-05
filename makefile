@@ -2,10 +2,10 @@ CXX = g++
 OPTIMIZATION = -O3
 CXXFLAGS = -std=c++17 $(OPTIMIZATION) -Wall -Wextra
 THREADFLAGS = -pthread
-
+# everything is done in the build directory since i kept running the files and it kept generating a lot of files, 
 SRCDIR = src
 OBJDIR = build
-
+# this is to have seperate targets so i dont ahve ot recompile both everty time 
 TARGET1 = psrs
 TARGET2 = psrsparallel
 
@@ -16,7 +16,7 @@ SRC_SEQ = $(SRCDIR)/PSRS.cpp \
 SRC_PAR = $(SRCDIR)/PSRSParallel.cpp \
           $(SRCDIR)/KWayMerge.cpp \
           $(SRCDIR)/QuickSort.cpp
-
+# hdr is for the header files
 HDR = $(SRCDIR)/PSRS.h \
       $(SRCDIR)/KWayMerge.h \
       $(SRCDIR)/QuickSort.h \

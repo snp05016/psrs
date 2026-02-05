@@ -70,4 +70,20 @@ struct phase5MergeArgs {
   int processor_i;
 };
 
+// unified worker args for persistent threads
+struct WorkerArgs {
+  int thread_id;
+  int n;
+  int p;
+  int size;
+  int r_size;
+  vector<int> *inputVector;
+  vector<int> *sample;
+  vector<int> *pivots;
+  vector<int> *subsize;
+  vector<vector<vector<int>>> *buckets;
+  vector<vector<int>> *sorted_parts;
+  pthread_barrier_t *barrier;
+};
+
 #endif // PSRS_H

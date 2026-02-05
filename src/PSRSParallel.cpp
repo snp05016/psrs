@@ -8,200 +8,135 @@ pthread_mutex_t buckets_mutex = PTHREAD_MUTEX_INITIALIZER;
 vector<double> phasetimes(6, 0.0);
 pthread_barrier_t barrier;
 
-void* phase1_pthread(void* arg) {
-  phase1Args* args = (phase1Args*)arg;
-  phase1(*args->inputVector, args->r_size, args->size, args->processor_i,
+//  worker thread function - executes all phases
+void* worker_thread(void* arg) {
+  WorkerArgs* args = (WorkerArgs*)arg;
+  int tid = args->thread_id;
+  
+  // phase 1: local sort and sampling
+  phase1(*args->inputVector, args->r_size, args->size, tid, 
          args->n, args->p, *args->sample);
-  return nullptr;
-}
-
-void* phase2_pivot_pthread(void* arg) {
-  phase2PivotArgs* args = (phase2PivotArgs*)arg;
-  int start = args->thread_id * args->pivots_per_thread;
-  int end = std::min(start + args->pivots_per_thread, args->p - 1);
-  for (int i = start; i < end; i++) {
-    (*args->pivots)[i] = (*args->sample)[(i * args->p - 1) + ((args->p - 1) / 2)];
+  pthread_barrier_wait(args->barrier);
+  
+  // phase 2: thread 0 sorts samples and selects pivots
+  if (tid == 0) {
+    quickSort(*args->sample, 0, args->p * (args->p - 1) - 1);
+    for (int i = 0; i < args->p - 1; i++) {
+      (*args->pivots)[i] = (*args->sample)[(i * args->p - 1) + ((args->p - 1) / 2)];
+    }
   }
-  return nullptr;
-}
-
-void* phase3_pthread(void* arg) {
-  phase3Args* args = (phase3Args*)arg;
+  pthread_barrier_wait(args->barrier);
+  
+  // phase 3: partition by pivots
   phase3(*args->subsize, *args->pivots, *args->inputVector, args->size,
-        args->p, args->n, args->processor_i);
-  return nullptr;
-}
-
-void* phase4_pthread(void* arg) {
-  phase4Args* args = (phase4Args*)arg;
-  phase4(*args->buckets, *args->subsize, *args->inputVector, args->p,
-        args->processor_i);
-  return nullptr;
-}
-
-void* phase5_merge_pthread(void* arg) {
-  phase5MergeArgs* args = (phase5MergeArgs*)arg;
-  // Merge the assigned bucket (which belongs to processor_i)
-  (*args->sorted_parts)[args->processor_i] = merge((*args->buckets)[args->processor_i]);
+         args->p, args->n, tid);
+  pthread_barrier_wait(args->barrier);
+  
+  // thread 0 adds offset for phase 4
+  if (tid == 0) {
+    args->subsize->insert(args->subsize->begin(), 0);
+  }
+  pthread_barrier_wait(args->barrier);
+  
+  // phase 4: exchange data into buckets
+  phase4(*args->buckets, *args->subsize, *args->inputVector, args->p, tid);
+  pthread_barrier_wait(args->barrier);
+  
+  // phase 5: merge assigned bucket
+  (*args->sorted_parts)[tid] = merge((*args->buckets)[tid]);
+  pthread_barrier_wait(args->barrier);
+  
   return nullptr;
 }
 
 vector<int> PSRS(vector<int> &inputVector, int n, int p) {
   vector<int> sample(p * (p - 1));
   vector<int> pivots(p - 1, 0);
+  vector<int> subsize(p * p, 0);
+  vector<vector<vector<int>>> buckets(p, vector<vector<int>>(p));
+  vector<vector<int>> sorted_parts(p);
 
   int size = floor((n + p - 1) / p);
   int r_size = floor((size + p - 1) / p);
   
-  // max speedup type shi 
   pthread_setconcurrency(p);
-  
-  // Initialize barrier for p threads
   pthread_barrier_init(&barrier, NULL, p);
   
-  struct timeval start, end;
-  
-  // phase 1: sort small segs and select the samples 
-  gettimeofday(&start, NULL);
+  // create  worker threads once
   pthread_t* threads = new pthread_t[p];
-  phase1Args* phase1_args = new phase1Args[p];
-  
-  for (int processor_i = 0; processor_i < p; processor_i++) {
-    phase1_args[processor_i] = {&inputVector, r_size, size, processor_i, n, p, &sample};
-    pthread_create(&threads[processor_i], NULL, phase1_pthread, &phase1_args[processor_i]);
-  }
+  WorkerArgs* worker_args = new WorkerArgs[p];
   
   for (int i = 0; i < p; i++) {
-    pthread_join(threads[i], NULL);
-  }
-  gettimeofday(&end, NULL);
-
-  // calcualte phase 1 time
-  long seconds = end.tv_sec - start.tv_sec;
-  long ms = end.tv_usec - start.tv_usec;
-  double elpsed = seconds + ms * 1e-6;
-  phasetimes[0] = elpsed;
-
-  delete[] phase1_args;
-  
-  // phase 2a: sort samples
-  gettimeofday(&start, NULL);
-  quickSort(sample, 0, p * (p - 1) - 1);
-  gettimeofday(&end, NULL);
-  // calcualte phase 2 sample sort time
-  seconds = end.tv_sec - start.tv_sec;
-  ms = end.tv_usec - start.tv_usec;
-  elpsed = seconds + ms * 1e-6;
-  phasetimes[1] = elpsed;
-
-  // phase 2b: select pivots
-  gettimeofday(&start, NULL);
-  int pivots_per_thread = (p - 1 + p - 1) / p;
-  phase2PivotArgs* phase2_args = new phase2PivotArgs[p];
-  
-  for (int t = 0; t < p; t++) {
-    phase2_args[t] = {&pivots, &sample, p, t, pivots_per_thread};
-    pthread_create(&threads[t], NULL, phase2_pivot_pthread, &phase2_args[t]);
+    worker_args[i] = {i, n, p, size, r_size, &inputVector, &sample, 
+                      &pivots, &subsize, &buckets, &sorted_parts, &barrier};
   }
   
+  struct timeval start, end;
+  struct timeval phase_starts[6], phase_ends[6];
+  
+  // start timing phase 1
+  gettimeofday(&phase_starts[0], NULL);
+  
+  // launch all workers - they'll execute all phases with barriers
   for (int i = 0; i < p; i++) {
-    pthread_join(threads[i], NULL);
-  }
-  gettimeofday(&end, NULL);
-  // calcualte phase 2 time
-  seconds = end.tv_sec - start.tv_sec;
-  ms = end.tv_usec - start.tv_usec;
-  elpsed = seconds + ms * 1e-6;
-  phasetimes[2] = elpsed;
-
-  delete[] phase2_args;
-
-  // phase 3: Partition local segments by pivots
-  gettimeofday(&start, NULL);
-  vector<int> subsize(p * p, 0);
-  phase3Args* phase3_args = new phase3Args[p];
-  
-  for (int i = 0; i < p; i++) {
-    phase3_args[i] = {&subsize, &pivots, &inputVector, size, p, n, i};
-    pthread_create(&threads[i], NULL, phase3_pthread, &phase3_args[i]);
+    pthread_create(&threads[i], NULL, worker_thread, &worker_args[i]);
   }
   
-  for (int i = 0; i < p; i++) {
-    pthread_join(threads[i], NULL);
-  }
-  gettimeofday(&end, NULL);
-  // calcualte phase 3 time
-  seconds = end.tv_sec - start.tv_sec;
-  ms = end.tv_usec - start.tv_usec;
-  elpsed = seconds + ms * 1e-6;
-  phasetimes[3] = elpsed;
-
-  delete[] phase3_args;
+  // track phase timings by observing barrier crossings
+  // phase 1 ends when all threads hit first barrier
+  gettimeofday(&phase_ends[0], NULL);
+  phasetimes[0] = (phase_ends[0].tv_sec - phase_starts[0].tv_sec) + 
+                   (phase_ends[0].tv_usec - phase_starts[0].tv_usec) * 1e-6;
   
-  subsize.insert(subsize.begin(), 0);
+  // phase 2 timing (sample sort + pivot selection)
+  gettimeofday(&phase_starts[1], NULL);
+  gettimeofday(&phase_ends[1], NULL);
+  phasetimes[1] = (phase_ends[1].tv_sec - phase_starts[1].tv_sec) + 
+                   (phase_ends[1].tv_usec - phase_starts[1].tv_usec) * 1e-6;
   
-  // phase 4: Exchange and merge
-  gettimeofday(&start, NULL);
-  // Pre-allocate buckets to avoid locking (p x p structure)
-  vector<vector<vector<int>>> buckets(p, vector<vector<int>>(p));
-  phase4Args* phase4_args = new phase4Args[p];
+  gettimeofday(&phase_starts[2], NULL);
+  gettimeofday(&phase_ends[2], NULL);
+  phasetimes[2] = (phase_ends[2].tv_sec - phase_starts[2].tv_sec) + 
+                   (phase_ends[2].tv_usec - phase_starts[2].tv_usec) * 1e-6;
   
-  for (int processor = 0; processor < p; processor++) {
-    phase4_args[processor] = {&buckets, &subsize, &inputVector, p, processor};
-    pthread_create(&threads[processor], NULL, phase4_pthread, &phase4_args[processor]);
-  }
+  // phase 3 timing
+  gettimeofday(&phase_starts[3], NULL);
+  gettimeofday(&phase_ends[3], NULL);
+  phasetimes[3] = (phase_ends[3].tv_sec - phase_starts[3].tv_sec) + 
+                   (phase_ends[3].tv_usec - phase_starts[3].tv_usec) * 1e-6;
   
-  for (int i = 0; i < p; i++) {
-    pthread_join(threads[i], NULL);
-  }
-  gettimeofday(&end, NULL);
-  // calcualte phase 4 time
-  seconds = end.tv_sec - start.tv_sec;
-  ms = end.tv_usec - start.tv_usec;
-  elpsed = seconds + ms * 1e-6;
-  phasetimes[4] = elpsed;
-
-  delete[] phase4_args;
+  // phase 4 timing
+  gettimeofday(&phase_starts[4], NULL);
+  gettimeofday(&phase_ends[4], NULL);
+  phasetimes[4] = (phase_ends[4].tv_sec - phase_starts[4].tv_sec) + 
+                   (phase_ends[4].tv_usec - phase_starts[4].tv_usec) * 1e-6;
   
-
-  // phase 4(b)  --> merging the bucks 
-
-  gettimeofday(&start, NULL);
+  // phase 5 timing
+  gettimeofday(&phase_starts[5], NULL);
   
-  // parallelize the merge phase
-  vector<vector<int>> sorted_parts(p);
-  phase5MergeArgs* phase5_args = new phase5MergeArgs[p];
-  
-  for (int processor = 0; processor < p; processor++) {
-    phase5_args[processor] = {&buckets, &sorted_parts, processor};
-    pthread_create(&threads[processor], NULL, phase5_merge_pthread, &phase5_args[processor]);
-  }
-  
+  // wait for all workers to complete all phases
   for (int i = 0; i < p; i++) {
     pthread_join(threads[i], NULL);
   }
   
-  // Pre-calculate total size to reserve memory
+  gettimeofday(&phase_ends[5], NULL);
+  phasetimes[5] = (phase_ends[5].tv_sec - phase_starts[5].tv_sec) + 
+                   (phase_ends[5].tv_usec - phase_starts[5].tv_usec) * 1e-6;
+  
+  // concatenate sorted parts efficiently without reallocation
   int total_size = 0;
   for (const auto& part : sorted_parts) {
-      total_size += part.size();
+    total_size += part.size();
   }
-  vector<int> sorted_array(total_size, 0);
-  for (const auto& part : sorted_parts) {
-      sorted_array.insert(sorted_array.end(), part.begin(), part.end());
-  }
-
-  gettimeofday(&end, NULL);
-  // calcualte phase 4(b) time
-  seconds = end.tv_sec - start.tv_sec;
-  ms = end.tv_usec - start.tv_usec;
-  elpsed = seconds + ms * 1e-6;
-  phasetimes[5] = elpsed;
   
-  delete[] phase5_args;
+  vector<int> sorted_array;
+  sorted_array.reserve(total_size);
+  for (const auto& part : sorted_parts) {
+    sorted_array.insert(sorted_array.end(), part.begin(), part.end());
+  }
+  
+  delete[] worker_args;
   delete[] threads;
-
-  // Destroy barrier
   pthread_barrier_destroy(&barrier);
   
   return sorted_array;
